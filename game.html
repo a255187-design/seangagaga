@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>射龍門 Pro</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            margin: 0; padding: 16px; color: var(--text);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container { max-width: 400px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h1 { font-size: 24px; font-weight: 900; margin: 0; }
+        .deck-selector { background: #e2e8f0; padding: 4px; border-radius: 8px; display: flex; gap: 4px; }
+        .deck-btn { border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; background: transparent; }
+        .deck-btn.active { background: var(--primary); color: white; }
+
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+        .card-btn { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: white; border: 2px solid #e2e8f0; rounded-xl; padding: 8px;
+            border-radius: 12px; height: 75px; transition: all 0.1s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .card-btn:active { transform: scale(0.95); background: #f1f5f9; }
+        .card-btn.empty { opacity: 0.4; background: #e2e8f0; border-color: transparent; pointer-events: none; }
+        .card-label { font-size: 10px; color: #94a3b8; font-weight: bold; }
+        .card-count { font-size: 18px; font-weight: 900; }
+        .card-percent { font-size: 9px; color: var(--primary); font-weight: bold; }
+
+        .info-bar { 
+            background: white; padding: 15px; border-radius: 16px; display: flex; 
+            justify-content: space-between; align-items: center; margin-bottom: 20px;
+            border: 1px solid #f1f5f9;
+        }
+        .reset-btn { background: #fff1f2; color: #e11d48; border: 1px solid #ffe4e6; padding: 8px 12px; border-radius: 10px; font-weight: bold; font-size: 13px; }
+
+        .calc-area { background: white; padding: 20px; border-radius: 24px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .inputs { display: flex; gap: 15px; margin-bottom: 20px; }
+        .input-group { flex: 1; text-align: center; }
+        .input-group label { display: block; font-size: 11px; color: #94a3b8; font-weight: bold; margin-bottom: 8px; }
+        input { 
+            width: 80%; text-align: center; font-size: 28px; font-weight: 900; 
+            background: #f8fafc; border: 2px solid #f1f5f9; border-radius: 16px; padding: 12px 0;
+            outline: none; transition: border-color 0.2s;
+        }
+        input:focus { border-color: var(--primary); }
+        .main-btn { 
+            width: 100%; background: #0f172a; color: white; border: none; padding: 16px;
+            border-radius: 16px; font-size: 18px; font-weight: 900; margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .main-btn:active { transform: scale(0.98); }
+
+        .res-box { padding: 15px; border-radius: 16px; text-align: center; margin-bottom: 10px; }
+        .bg-win { background: #ecfdf5; border: 1px solid #d1fae5; color: #065f46; }
+        .bg-risk { background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; }
+        .bg-blue { background: #eff6ff; border: 1px solid #dbeafe; color: #1e40af; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>射龍門 <span style="color:var(--primary)">Master</span></h1>
+        <div class="deck-selector">
+            <button onclick="setDecks(1)" id="d-1" class="deck-btn active">1副</button>
+            <button onclick="setDecks(2)" id="d-2" class="deck-btn">2副</button>
+            <button onclick="setDecks(4)" id="d-4" class="deck-btn">4副</button>
+        </div>
+    </div>
+
+    <div id="card-grid" class="grid"></div>
+
+    <div class="info-bar">
+        <div>
+            <div style="font-size:10px; color:#94a3b8; font-weight:bold;">剩餘總張數</div>
+            <div id="total-left" style="font-size:20px; font-weight:900; color:var(--primary)">52</div>
+        </div>
+        <button onclick="resetGame()" class="reset-btn">重置牌組</button>
+    </div>
+
+    <div class="calc-area">
+        <div class="inputs">
+            <div class="input-group">
+                <label>左門柱</label>
+                <input type="number" id="cardL" placeholder="0">
+            </div>
+            <div class="input-group">
+                <label>右門柱</label>
+                <input type="number" id="cardH" placeholder="0">
+            </div>
+        </div>
+        <button onclick="calculate()" class="main-btn">分析勝率並扣牌</button>
+
+        <div id="result" class="hidden">
+            <div id="normal-res">
+                <div class="res-box bg-win">
+                    <div style="font-size:12px; margin-bottom:4px;">中洞勝率</div>
+                    <div id="winProb" style="font-size:32px; font-weight:900;">0%</div>
+                </div>
+                <div class="res-box bg-risk" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:bold">撞柱風險</span>
+                    <span id="postProb" style="font-size:20px; font-weight:900;">0%</span>
+                </div>
+            </div>
+            <div id="same-res" class="hidden">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <div class="res-box bg-blue">
+                        <div style="font-size:11px;">猜大勝率</div>
+                        <div id="higherProb" style="font-size:20px; font-weight:900;">0%</div>
+                    </div>
+                    <div class="res-box bg-blue">
+                        <div style="font-size:11px;">猜小勝率</div>
+                        <div id="lowerProb" style="font-size:20px; font-weight:900;">0%</div>
+                    </div>
+                </div>
+                <div style="background:#e11d48; color:white; padding:12px; border-radius:12px; text-align:center;">
+                    <div style="font-size:11px; opacity:0.8;">再撞柱機率</div>
+                    <div id="doublePostProb" style="font-size:20px; font-weight:900;">0%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentDeckCount = 1;
+    let deck = Array(14).fill(4);
+
+    function setDecks(num) {
+        currentDeckCount = num;
+        document.querySelectorAll('.deck-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`d-${num}`).classList.add('active');
+        resetGame();
+    }
+
+    function init() {
+        const grid = document.getElementById('card-grid');
+        const total = deck.slice(1).reduce((a, b) => a + b, 0);
+        grid.innerHTML = '';
+        for(let i=1; i<=13; i++) {
+            const label = i === 1 ? 'A' : (i === 11 ? 'J' : (i === 12 ? 'Q' : (i === 13 ? 'K' : i)));
+            const prob = total > 0 ? ((deck[i] / total) * 100).toFixed(1) : '0.0';
+            const isEmpty = deck[i] === 0;
+            grid.innerHTML += `
+                <button onclick="manualMinus(${i})" ${isEmpty ? 'disabled' : ''} class="card-btn ${isEmpty ? 'empty' : ''}">
+                    <span class="card-label">${label}</span>
+                    <span class="card-count">${deck[i]}</span>
+                    <span class="card-percent">${prob}%</span>
+                </button>`;
+        }
+        document.getElementById('total-left').innerText = total;
+    }
+
+    function manualMinus(val) {
+        if(deck[val] > 0) { deck[val]--; init(); }
+    }
+
+    function resetGame() {
+        deck = Array(14).fill(4 * currentDeckCount);
+        document.getElementById('result').classList.add('hidden');
+        document.getElementById('cardL').value = '';
+        document.getElementById('cardH').value = '';
+        init();
+    }
+
+    function calculate() {
+        let L = parseInt(document.getElementById('cardL').value);
+        let H = parseInt(document.getElementById('cardH').value);
+        if(!L || !H || L<1 || L>13 || H<1 || H>13) return alert('請輸入 1-13 的點數');
+        
+        if(deck[L] > 0) deck[L]--;
+        if(deck[H] > 0) deck[H]--;
+        init();
+
+        const total = deck.slice(1).reduce((a, b) => a + b, 0);
+        if(total === 0) return;
+
+        document.getElementById('result').classList.remove('hidden');
+        const normalRes = document.getElementById('normal-res');
+        const sameRes = document.getElementById('same-res');
+
+        if (L === H) {
+            normalRes.classList.add('hidden');
+            sameRes.classList.remove('hidden');
+            let high = 0, low = 0;
+            for(let i=H+1; i<=13; i++) high += deck[i];
+            for(let i=1; i<L; i++) low += deck[i];
+            document.getElementById('higherProb').innerText = ((high/total)*100).toFixed(1) + '%';
+            document.getElementById('lowerProb').innerText = ((low/total)*100).toFixed(1) + '%';
+            document.getElementById('doublePostProb').innerText = ((deck[L]/total)*100).toFixed(1) + '%';
+        } else {
+            sameRes.classList.add('hidden');
+            normalRes.classList.remove('hidden');
+            if(L > H) [L, H] = [H, L];
+            let win = 0;
+            for(let i = L + 1; i < H; i++) win += deck[i];
+            document.getElementById('winProb').innerText = ((win/total)*100).toFixed(1) + '%';
+            document.getElementById('postProb').innerText = (((deck[L]+deck[H])/total)*100).toFixed(1) + '%';
+        }
+    }
+    init();
+</script>
+</body>
+</html>
